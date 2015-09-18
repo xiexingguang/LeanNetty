@@ -50,17 +50,33 @@ public class TimeClientHandle implements  Runnable{
                 while (selectionKeyIterator.hasNext()) {
                     selectionKey = selectionKeyIterator.next();
                     selectionKeyIterator.remove();
-
+                    handleInput(selectionKey);
+                    if (selectionKey != null) {
+                        selectionKey.cancel();
+                        if (selectionKey.channel() != null) {
+                            selectionKey.channel().close();
+                        }
+                    }
                 }
             } catch (Exception e) {
-
+                e.printStackTrace();
+                System.exit(1);
             }
+        }
+
+        if (selector != null) {
+            try {
+                selector.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
         }
     }
 
     private void doConnect() throws IOException {
         if (socketChannel.connect(new InetSocketAddress(host, port))) {
-            socketChannel.register(selector, SelectionKey.OP_READ);
+            socketChannel.register(selector, SelectionKey.OP_READ);  // listen the read event
             doWrite(socketChannel);
         } else {
             socketChannel.register(selector, SelectionKey.OP_CONNECT);
@@ -79,7 +95,7 @@ public class TimeClientHandle implements  Runnable{
         }
     }
 
-     //deal with write..
+     //deal with input.
     private void handleInput(SelectionKey key) throws  IOException{
         if (key.isValid()) {
             SocketChannel socketChannel = (SocketChannel) key.channel();
@@ -103,7 +119,7 @@ public class TimeClientHandle implements  Runnable{
                     this.stop = true;
                 }else if (readBytes < 0) {
                     key.cancel();
-                    socketChannel.close();
+                 //   socketChannel.close();
                 }else
                     ;          // read 0 byte ,we ignore
             }
